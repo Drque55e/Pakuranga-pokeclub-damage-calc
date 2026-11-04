@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Showdown Damage Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        showdown: {
+                            bg: '#121212',
+                            panel: '#1e1e1e',
+                            header: '#2a2a2a',
+                            accent: '#3b82f6',
+                            border: '#333333'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Header Navigation -->
+    <header class="bg-showdown-header border-b border-showdown-border py-3 px-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-bolt text-yellow-400 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide text-white">Pokémon Damage Calc <span class="text-xs bg-blue-600 px-2 py-0.5 rounded text-white ml-2">Gen 9</span></h1>
+            </div>
+            <div class="flex items-center space-x-3 text-sm">
+                <button onclick="toggleGithubModal()" class="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded transition flex items-center space-x-2 text-white">
+                    <i class="fa-brands fa-github"></i>
+                    <span>GitHub Pages Ready</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-2 sm:px-4 mt-4">
+        
+        <!-- Global Rules & Settings Bar -->
+        <div class="bg-showdown-panel border border-showdown-border rounded-lg p-3 mb-4 shadow">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 text-sm">
+                <div>
+                    <label class="block text-gray-400 text-xs font-semibold mb-1">Generation</label>
+                    <select id="generation" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white focus:outline-none focus:border-blue-500">
+                        <option value="9" selected>Gen 9 SV</option>
+                        <option value="8">Gen 8 SwSh</option>
+                        <option value="7">Gen 7 SM</option>
+                        <option value="6">Gen 6 XY</option>
+                        <option value="5">Gen 5 BW</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-xs font-semibold mb-1">Weather</label>
+                    <select id="weather" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white focus:outline-none focus:border-blue-500">
+                        <option value="None">None</option>
+                        <option value="Sun">Sun</option>
+                        <option value="Rain">Rain</option>
+                        <option value="Sandstorm">Sandstorm</option>
+                        <option value="Snow">Snow</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-xs font-semibold mb-1">Terrain</label>
+                    <select id="terrain" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white focus:outline-none focus:border-blue-500">
+                        <option value="None">None</option>
+                        <option value="Electric">Electric</option>
+                        <option value="Grassy">Grassy</option>
+                        <option value="Misty">Misty</option>
+                        <option value="Psychic">Psychic</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-xs font-semibold mb-1">Battle Format</label>
+                    <select id="format" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white focus:outline-none focus:border-blue-500">
+                        <option value="Singles">Singles</option>
+                        <option value="Doubles">Doubles</option>
+                    </select>
+                </div>
+                <div class="col-span-2 flex items-center justify-end space-x-2 pt-4">
+                    <button onclick="clearAll()" class="bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-700 px-3 py-1 rounded text-xs transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Reset All
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PokePaste Importer Dropdowns/Modals Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-showdown-panel border border-showdown-border rounded-lg p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold text-blue-400 flex items-center">
+                        <i class="fa-solid fa-file-import mr-2"></i> Import Attacker PokePaste
+                    </h3>
+                    <button onclick="parsePokePaste('attacker')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">Parse Attacker</button>
+                </div>
+                <textarea id="attacker-paste" placeholder="Paste Showdown set or PokePaste here..." class="w-full h-20 bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+            </div>
+            <div class="bg-showdown-panel border border-showdown-border rounded-lg p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold text-red-400 flex items-center">
+                        <i class="fa-solid fa-file-import mr-2"></i> Import Defender PokePaste
+                    </h3>
+                    <button onclick="parsePokePaste('defender')" class="bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">Parse Defender</button>
+                </div>
+                <textarea id="defender-paste" placeholder="Paste Showdown set or PokePaste here..." class="w-full h-20 bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-red-500 resize-none"></textarea>
+            </div>
+        </div>
+
+        <!-- Calculator Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+            <!-- ATTACKER COLUMN -->
+            <div class="lg:col-span-5 bg-showdown-panel border border-showdown-border rounded-lg p-4 shadow">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
+                    <span class="text-lg font-bold text-blue-400 flex items-center">
+                        <i class="fa-solid fa-shield-halved mr-2"></i> Attacker
+                    </span>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-xs text-gray-400">Level:</label>
+                        <input type="number" id="attacker-level" value="100" min="1" max="100" onchange="updateStats('attacker')" class="w-12 bg-gray-800 border border-gray-700 rounded text-center text-xs text-white p-1">
+                    </div>
+                </div>
+
+                <!-- Species & Item/Ability Selection -->
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Pokémon</label>
+                        <select id="attacker-species" onchange="loadPreset('attacker')" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500 font-semibold"></select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Tera Type</label>
+                            <select id="attacker-tera" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                        <div class="flex items-center pt-4">
+                            <label class="inline-flex items-center text-xs text-gray-300 cursor-pointer">
+                                <input type="checkbox" id="attacker-is-terastallized" onchange="calculateDamage()" class="rounded bg-gray-800 border-gray-700 text-blue-600 focus:ring-0 w-4 h-4 mr-1.5">
+                                Terastallized
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Ability</label>
+                            <select id="attacker-ability" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Item</label>
+                            <select id="attacker-item" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Nature</label>
+                            <select id="attacker-nature" onchange="updateStats('attacker')" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Status</label>
+                            <select id="attacker-status" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                                <option value="Healthy">Healthy</option>
+                                <option value="Burned">Burned</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Table -->
+                <div class="bg-gray-900 rounded p-2 mb-4 border border-gray-800">
+                    <div class="grid grid-cols-6 gap-1 text-center text-xs font-semibold text-gray-400 border-b border-gray-800 pb-1 mb-1">
+                        <span>Stat</span>
+                        <span>Base</span>
+                        <span>EVs</span>
+                        <span>IVs</span>
+                        <span>Boost</span>
+                        <span>Total</span>
+                    </div>
+                    <div id="attacker-stats-rows" class="space-y-1"></div>
+                </div>
+
+                <!-- Moves Selection -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Moves</label>
+                    <div id="attacker-moves-container" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- DEFENDER COLUMN -->
+            <div class="lg:col-span-5 bg-showdown-panel border border-showdown-border rounded-lg p-4 shadow">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
+                    <span class="text-lg font-bold text-red-400 flex items-center">
+                        <i class="fa-solid fa-shield mr-2"></i> Defender
+                    </span>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-xs text-gray-400">Level:</label>
+                        <input type="number" id="defender-level" value="100" min="1" max="100" onchange="updateStats('defender')" class="w-12 bg-gray-800 border border-gray-700 rounded text-center text-xs text-white p-1">
+                    </div>
+                </div>
+
+                <!-- Species & Item/Ability Selection -->
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Pokémon</label>
+                        <select id="defender-species" onchange="loadPreset('defender')" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-red-500 font-semibold"></select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Tera Type</label>
+                            <select id="defender-tera" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                        <div class="flex items-center pt-4">
+                            <label class="inline-flex items-center text-xs text-gray-300 cursor-pointer">
+                                <input type="checkbox" id="defender-is-terastallized" onchange="calculateDamage()" class="rounded bg-gray-800 border-gray-700 text-red-600 focus:ring-0 w-4 h-4 mr-1.5">
+                                Terastallized
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Ability</label>
+                            <select id="defender-ability" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Item</label>
+                            <select id="defender-item" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Nature</label>
+                            <select id="defender-nature" onchange="updateStats('defender')" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Current HP</label>
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="defender-current-hp" onchange="calculateDamage()" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none text-center">
+                                <span class="text-xs text-gray-400">/</span>
+                                <span id="defender-max-hp-display" class="text-xs text-gray-300 font-semibold w-12 text-center">300</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Field Conditions for Defender -->
+                <div class="bg-gray-900/60 p-2 rounded border border-gray-800 mb-3 space-y-1">
+                    <span class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Defender Side Field Effects</span>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center text-gray-300 cursor-pointer">
+                            <input type="checkbox" id="field-reflect" onchange="calculateDamage()" class="rounded bg-gray-800 border-gray-700 text-blue-600 focus:ring-0 mr-1.5">
+                            Reflect
+                        </label>
+                        <label class="flex items-center text-gray-300 cursor-pointer">
+                            <input type="checkbox" id="field-lightscreen" onchange="calculateDamage()" class="rounded bg-gray-800 border-gray-700 text-blue-600 focus:ring-0 mr-1.5">
+                            Light Screen
+                        </label>
+                        <label class="flex items-center text-gray-300 cursor-pointer">
+                            <input type="checkbox" id="field-auroraveil" onchange="calculateDamage()" class="rounded bg-gray-800 border-gray-700 text-blue-600 focus:ring-0 mr-1.5">
+                            Aurora Veil
+                        </label>
+                        <label class="flex items-center text-gray-300 cursor-pointer">
+                            <input type="checkbox" id="field-stealthrock" onchange="calculateDamage()" class="rounded bg-gray-800 border-gray-700 text-blue-600 focus:ring-0 mr-1.5">
+                            Stealth Rock
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Stats Table -->
+                <div class="bg-gray-900 rounded p-2 mb-4 border border-gray-800">
+                    <div class="grid grid-cols-6 gap-1 text-center text-xs font-semibold text-gray-400 border-b border-gray-800 pb-1 mb-1">
+                        <span>Stat</span>
+                        <span>Base</span>
+                        <span>EVs</span>
+                        <span>IVs</span>
+                        <span>Boost</span>
+                        <span>Total</span>
+                    </div>
+                    <div id="defender-stats-rows" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <!-- RESULTS & CALCULATION OUTPUT PANEL -->
+            <div class="lg:col-span-2 bg-showdown-panel border border-showdown-border rounded-lg p-4 shadow flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-300 border-b border-gray-700 pb-2 mb-3 flex items-center">
+                        <i class="fa-solid fa-calculator mr-2 text-yellow-500"></i> Calculation Output
+                    </h3>
+
+                    <div id="result-wrapper" class="space-y-4">
+                        <div class="bg-gray-900 p-3 rounded border border-gray-800">
+                            <span class="block text-xs font-semibold text-gray-400 mb-1">Selected Attack</span>
+                            <div id="selected-move-name" class="font-bold text-blue-400 text-sm">No Move Selected</div>
+                        </div>
+
+                        <div>
+                            <span class="block text-xs font-semibold text-gray-400 mb-1">Damage Range</span>
+                            <div id="damage-range-text" class="text-lg font-extrabold text-white">0 - 0</div>
+                            <div id="damage-percent-text" class="text-sm font-semibold text-yellow-400">0% - 0%</div>
+                        </div>
+
+                        <div>
+                            <span class="block text-xs font-semibold text-gray-400 mb-1">KO Estimate</span>
+                            <div id="ko-chance-text" class="text-xs font-medium text-gray-300 bg-gray-900 p-2 rounded border border-gray-800">
+                                Select a move to compute results.
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="block text-xs font-semibold text-gray-400 mb-1">All 16 Rolls</span>
+                            <div id="all-rolls-text" class="text-[10px] font-mono text-gray-400 bg-gray-900 p-2 rounded border border-gray-800 max-h-28 overflow-y-auto break-words leading-relaxed">
+                                -
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-gray-800">
+                    <button onclick="copyResultText()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2 px-3 rounded transition flex items-center justify-center space-x-1">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy Summary</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- GitHub Deployment Helper Modal -->
+    <div id="github-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-showdown-panel border border-showdown-border rounded-lg max-w-xl w-full p-5 relative shadow-2xl">
+            <button onclick="toggleGithubModal()" class="absolute top-3 right-3 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-3 flex items-center">
+                <i class="fa-brands fa-github text-2xl mr-2 text-blue-400"></i> Deploying to GitHub Pages
+            </h3>
+            <p class="text-xs text-gray-300 mb-3 leading-relaxed">
+                This app is entirely self-contained in a single file with zero external runtime server dependencies!
+            </p>
+            <ol class="list-decimal list-inside text-xs text-gray-300 space-y-2 bg-gray-900 p-3 rounded border border-gray-800 mb-4 font-mono">
+                <li>Create a new repository on GitHub (e.g., <span class="text-yellow-400">pokemon-damage-calc</span>).</li>
+                <li>Create a file named <span class="text-green-400">index.html</span> in the root directory.</li>
+                <li>Paste the complete code of this file into <span class="text-green-400">index.html</span>.</li>
+                <li>Go to <span class="text-blue-400">Settings -> Pages</span> in your GitHub repository.</li>
+                <li>Set source to <span class="text-yellow-400">Main branch / (root)</span> and click Save!</li>
+            </ol>
+            <div class="text-right">
+                <button onclick="toggleGithubModal()" class="bg-gray-700 hover:bg-gray-600 text-white text-xs px-4 py-1.5 rounded">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Code -->
+    <script>
+        /* ==========================================================================
+           DATABASES: Pokémon, Moves, Natures, Items, Type Chart
+           ========================================================================== */
+
+        const STAT_NAMES = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+        const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+
+        const TYPE_CHART = {
+            Normal:   { Normal: 1, Fire: 1, Water: 1, Electric: 1, Grass: 1, Ice: 1, Fighting: 1, Poison: 1, Ground: 1, Flying: 1, Psychic: 1, Bug: 1, Rock: 0.5, Ghost: 0, Dragon: 1, Steel: 0.5, Dark: 1, Fairy: 1 },
+            Fire:     { Normal: 1, Fire: 0.5, Water: 0.5, Electric: 1, Grass: 2, Ice: 2, Fighting: 1, Poison: 1, Ground: 1, Flying: 1, Psychic: 1, Bug: 2, Rock: 0.5, Ghost: 1, Dragon: 0.5, Steel: 2, Dark: 1, Fairy: 1 },
+            Water:    { Normal: 1, Fire: 2, Water: 0.5, Electric: 1, Grass: 0.5, Ice: 1, Fighting: 1, Poison: 1, Ground: 2, Flying: 1, Psychic: 1, Bug: 1, Rock: 2, Ghost: 1, Dragon: 0.5, Steel: 1, Dark: 1, Fairy: 1 },
+            Electric: { Normal: 1, Fire: 1, Water: 2, Electric: 0.5, Grass: 0.5, Ice: 1, Fighting: 1, Poison: 1, Ground: 0, Flying: 2, Psychic: 1, Bug: 1, Rock: 1, Ghost: 1, Dragon: 0.5, Steel: 1, Dark: 1, Fairy: 1 },
+            Grass:    { Normal: 1, Fire: 0.5, Water: 2, Electric: 1, Grass: 0.5, Ice: 1, Fighting: 1, Poison: 0.5, Ground: 2, Flying: 0.5, Psychic: 1, Bug: 0.5, Rock: 2, Ghost: 1, Dragon: 0.5, Steel: 0.5, Dark: 1, Fairy: 1 },
+            Ice:      { Normal: 1, Fire: 0.5, Water: 0.5, Electric: 1, Grass: 2, Ice: 0.5, Fighting: 1, Poison: 1, Ground: 2, Flying: 2, Psychic: 1, Bug: 1, Rock: 1, Ghost: 1, Dragon: 2, Steel: 0.5, Dark: 1, Fairy: 1 },
+            Fighting: { Normal: 2, Fire: 1, Water: 1, Electric: 1, Grass: 1, Ice: 2, Fighting: 1, Poison: 0.5, Ground: 1, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Rock: 2, Ghost: 0, Dragon: 1, Steel: 2, Dark: 2, Fairy: 0.5 },
+            Poison:   { Normal: 1, Fire: 1, Water: 1, Electric: 1, Grass: 2, Ice: 1, Fighting: 1, Poison: 0.5, Ground: 0.5, Flying: 1, Psychic: 1, Bug: 1, Rock: 0.5, Ghost: 0.5, Dragon: 1, Steel: 0, Dark: 1, Fairy: 2 },
+            Ground:   { Normal: 1, Fire: 2, Water: 1, Electric: 2, Grass: 0.5, Ice: 1, Fighting: 1, Poison: 2, Ground: 1, Flying: 0, Psychic: 1, Bug: 0.5, Rock: 2, Ghost: 1, Dragon: 1, Steel: 2, Dark: 1, Fairy: 1 },
+            Flying:   { Normal: 1, Fire: 1, Water: 1, Electric: 0.5, Grass: 2, Ice: 1, Fighting: 2, Poison: 1, Ground: 1, Flying: 1, Psychic: 1, Bug: 2, Rock: 0.5, Ghost: 1, Dragon: 1, Steel: 0.5, Dark: 1, Fairy: 1 },
+            Psychic:  { Normal: 1, Fire: 1, Water: 1, Electric: 1, Grass: 1, Ice: 1, Fighting: 2, Poison: 2, Ground: 1, Flying: 1, Psychic: 0.5, Bug: 1, Rock: 1, Ghost: 1, Dragon: 1, Steel: 0.5, Dark: 0, Fairy: 1 },
+            Bug:      { Normal: 1, Fire: 0.5, Water: 1, Electric: 1, Grass: 2, Ice: 1, Fighting: 0.5, Poison: 0.5, Ground: 1, Flying: 0.5, Psychic: 2, Bug: 1, Rock: 1, Ghost: 0.5, Dragon: 1, Steel: 0.5, Dark: 2, Fairy: 0.5 },
+            Rock:     { Normal: 1, Fire: 2, Water: 1, Electric: 1, Grass: 1, Ice: 2, Fighting: 0.5, Poison: 1, Ground: 0.5, Flying: 2, Psychic: 1, Bug: 2, Rock: 1, Ghost: 1, Dragon: 1, Steel: 0.5, Dark: 1, Fairy: 1 },
+            Ghost:    { Normal: 0, Fire: 1, Water: 1, Electric: 1, Grass: 1, Ice: 1, Fighting: 1, Poison: 1, Ground: 1, Flying: 1, Psychic: 2, Bug: 1, Rock: 1, Ghost: 2, Dragon: 1, Steel: 1, Dark: 0.5, Fairy: 1 },
+            Dragon:   { Normal: 1, Fire: 1, Water: 1, Electric: 1, Grass: 1, Ice: 1, Fighting: 1, Poison: 1, Ground: 1, Flying: 1, Psychic: 1, Bug: 1, Rock: 1, Ghost: 1, Dragon: 2, Steel: 0.5, Dark: 1, Fairy: 0 },
+            Steel:    { Normal: 1, Fire: 0.5, Water: 0.5, Electric: 0.5, Grass: 1, Ice: 2, Fighting: 1, Poison: 1, Ground: 1, Flying: 1, Psychic: 1, Bug: 1, Rock: 2, Ghost: 1, Dragon: 1, Steel: 0.5, Dark: 1, Fairy: 2 },
+            Dark:     { Normal: 1, Fire: 1, Water: 1, Electric: 1, Grass: 1, Ice: 1, Fighting: 0.5, Poison: 1, Ground: 1, Flying: 1, Psychic: 2, Bug: 1, Rock: 1, Ghost: 2, Dragon: 1, Steel: 1, Dark: 0.5, Fairy: 0.5 },
+            Fairy:    { Normal: 1, Fire: 0.5, Water: 1, Electric: 1, Grass: 1, Ice: 1, Fighting: 2, Poison: 0.5, Ground: 1, Flying: 1, Psychic: 1, Bug: 1, Rock: 1, Ghost: 1, Dragon: 2, Steel: 0.5, Dark: 2, Fairy: 1 }
+        };
+
+        const TYPES = Object.keys(TYPE_CHART);
+
+        const NATURES = {
+            Adamant: { plus: 'atk', minus: 'spa' }, Bold:    { plus: 'def', minus: 'atk' },
+            Brave:   { plus: 'atk', minus: 'spe' }, Calm:    { plus: 'spd', minus: 'atk' },
+            Careful: { plus: 'spd', minus: 'spa' }, Gentle:  { plus: 'spd', minus: 'def' },
+            Hardy:   { plus: null, minus: null  }, Hasty:   { plus: 'spe', minus: 'def' },
+            Impish:  { plus: 'def', minus: 'spa' }, Jolly:   { plus: 'spe', minus: 'spa' },
+            Lax:     { plus: 'def', minus: 'spd' }, Lonely:  { plus: 'atk', minus: 'def' },
+            Mild:    { plus: 'spa', minus: 'def' }, Modest:  { plus: 'spa', minus: 'atk' },
+            Naive:   { plus: 'spe', minus: 'spd' }, Naughty: { plus: 'atk', minus: 'spd' },
+            Quiet:   { plus: 'spa', minus: 'spe' }, Rash:    { plus: 'spa', minus: 'spd' },
+            Relaxed: { plus: 'def', minus: 'spe' }, Sassy:   { plus: 'spd', minus: 'spe' },
+            Serious: { plus: null, minus: null  }, Timid:   { plus: 'spe', minus: 'atk' },
+            Bashful: { plus: null, minus: null  }, Docile:  { plus: null, minus: null  },
+            Quirky:  { plus: null, minus: null  }
+        };
+
+        const ITEMS = ["None", "Choice Band", "Choice Specs", "Life Orb", "Assault Vest", "Expert Belt", "Leftovers", "Focus Sash", "Eviolite", "Heavy-Duty Boots", "Booster Energy"];
+        const ABILITIES = ["None", "Protosynthesis", "Quark Drive", "Sword of Ruin", "Beads of Ruin", "Tablet of Ruin", "Vessel of Ruin", "Intimidate", "Overgrow", "Blaze", "Torrent", "Multiscale", "Magic Guard", "Unaware"];
+
+        const POKEMON_DB = {
+            "Flutter Mane": { types: ["Ghost", "Fairy"], baseStats: { hp: 55, atk: 55, def: 55, spa: 135, spd: 135, spe: 135 }, ability: "Protosynthesis" },
+            "Iron Valiant": { types: ["Fairy", "Fighting"], baseStats: { hp: 74, atk: 130, def: 90, spa: 120, spd: 60, spe: 116 }, ability: "Quark Drive" },
+            "Kingambit": { types: ["Dark", "Steel"], baseStats: { hp: 100, atk: 135, def: 120, spa: 60, spd: 85, spe: 50 }, ability: "Supreme Overlord" },
+            "Great Tusk": { types: ["Ground", "Fighting"], baseStats: { hp: 115, atk: 131, def: 131, spa: 53, spd: 53, spe: 87 }, ability: "Protosynthesis" },
+            "Gholdengo": { types: ["Steel", "Ghost"], baseStats: { hp: 87, atk: 60, def: 95, spa: 133, spd: 91, spe: 84 }, ability: "Good as Gold" },
+            "Ogerpon-Hearthflame": { types: ["Grass", "Fire"], baseStats: { hp: 80, atk: 120, def: 84, spa: 60, spd: 96, spe: 110 }, ability: "Mold Breaker" },
+            "Dragapult": { types: ["Dragon", "Ghost"], baseStats: { hp: 88, atk: 120, def: 75, spa: 100, spd: 75, spe: 142 }, ability: "Infiltrator" },
+            "Dragonite": { types: ["Dragon", "Flying"], baseStats: { hp: 91, atk: 134, def: 95, spa: 100, spd: 100, spe: 80 }, ability: "Multiscale" },
+            "Roaring Moon": { types: ["Dragon", "Dark"], baseStats: { hp: 105, atk: 139, def: 71, spa: 55, spd: 101, spe: 119 }, ability: "Protosynthesis" },
+            "Ting-Lu": { types: ["Dark", "Ground"], baseStats: { hp: 155, atk: 110, def: 125, spa: 55, spd: 80, spe: 45 }, ability: "Vessel of Ruin" },
+            "Chien-Pao": { types: ["Dark", "Ice"], baseStats: { hp: 80, atk: 120, def: 80, spa: 90, spd: 65, spe: 135 }, ability: "Sword of Ruin" },
+            "Urshifu-Rapid-Strike": { types: ["Fighting", "Water"], baseStats: { hp: 100, atk: 130, def: 100, spa: 63, spd: 60, spe: 97 }, ability: "Unseen Fist" },
+            "Landorus-Therian": { types: ["Ground", "Flying"], baseStats: { hp: 89, atk: 145, def: 90, spa: 105, spd: 80, spe: 91 }, ability: "Intimidate" },
+            "Heatran": { types: ["Fire", "Steel"], baseStats: { hp: 91, atk: 90, def: 106, spa: 130, spd: 106, spe: 77 }, ability: "Flash Fire" },
+            "Corviknight": { types: ["Flying", "Steel"], baseStats: { hp: 98, atk: 87, def: 105, spa: 53, spd: 85, spe: 67 }, ability: "Pressure" },
+            "Dondozo": { types: ["Water"], baseStats: { hp: 150, atk: 100, def: 115, spa: 65, spd: 65, spe: 35 }, ability: "Unaware" },
+            "Toxapex": { types: ["Poison", "Water"], baseStats: { hp: 50, atk: 63, def: 152, spa: 53, spd: 142, spe: 35 }, ability: "Regenerator" },
+            "Blissey": { types: ["Normal"], baseStats: { hp: 255, atk: 10, def: 10, spa: 75, spd: 135, spe: 55 }, ability: "Natural Cure" }
+        };
+
+        const MOVES_DB = {
+            "Moonblast": { bp: 95, type: "Fairy", category: "Special" },
+            "Shadow Ball": { bp: 80, type: "Ghost", category: "Special" },
+            "Earthquake": { bp: 100, type: "Ground", category: "Physical" },
+            "Close Combat": { bp: 120, type: "Fighting", category: "Physical" },
+            "Sucker Punch": { bp: 70, type: "Dark", category: "Physical" },
+            "Kowtow Cleave": { bp: 85, type: "Dark", category: "Physical" },
+            "Make It Rain": { bp: 120, type: "Steel", category: "Special" },
+            "Ivy Cudgel": { bp: 100, type: "Grass", category: "Physical" },
+            "Extreme Speed": { bp: 80, type: "Normal", category: "Physical" },
+            "Outrage": { bp: 120, type: "Dragon", category: "Physical" },
+            "Draco Meteor": { bp: 130, type: "Dragon", category: "Special" },
+            "Surging Strikes": { bp: 25, type: "Water", category: "Physical", hits: 3, isCrit: true },
+            "Knock Off": { bp: 65, type: "Dark", category: "Physical" },
+            "Flamethrower": { bp: 90, type: "Fire", category: "Special" },
+            "Thunderbolt": { bp: 90, type: "Electric", category: "Special" },
+            "Ice Beam": { bp: 90, type: "Ice", category: "Special" },
+            "Iron Head": { bp: 80, type: "Steel", category: "Physical" },
+            "Headlong Rush": { bp: 120, type: "Ground", category: "Physical" },
+            "Flash Cannon": { bp: 80, type: "Steel", category: "Special" },
+            "Body Press": { bp: 80, type: "Fighting", category: "Physical", useDef: true }
+        };
+
+        /* ==========================================================================
+           STATE MANAGEMENT
+           ========================================================================== */
+
+        const state = {
+            attacker: createDefaultPokemonState("Flutter Mane"),
+            defender: createDefaultPokemonState("Great Tusk"),
+            selectedMoveIndex: 0
+        };
+
+        function createDefaultPokemonState(speciesName) {
+            const poke = POKEMON_DB[speciesName] || POKEMON_DB["Flutter Mane"];
+            return {
+                species: speciesName,
+                level: 100,
+                item: "None",
+                ability: poke.ability || "None",
+                nature: "Timid",
+                status: "Healthy",
+                teraType: poke.types[0],
+                isTerastallized: false,
+                evs: { hp: 0, atk: 0, def: 0, spa: 252, spd: 4, spe: 252 },
+                ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+                boosts: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+                moves: ["Moonblast", "Shadow Ball", "Thunderbolt", "Mystical Fire"],
+                currentHp: 0
+            };
+        }
+
+        /* ==========================================================================
+           UI INITIALIZATION & RENDERING
+           ========================================================================== */
+
+        window.onload = function() {
+            initDropdowns();
+            renderPokemonPanel('attacker');
+            renderPokemonPanel('defender');
+            calculateDamage();
+        };
+
+        function initDropdowns() {
+            // Populate Species
+            const speciesKeys = Object.keys(POKEMON_DB).sort();
+            const atkSpeciesSelect = document.getElementById('attacker-species');
+            const defSpeciesSelect = document.getElementById('defender-species');
+
+            speciesKeys.forEach(s => {
+                atkSpeciesSelect.add(new Option(s, s));
+                defSpeciesSelect.add(new Option(s, s));
+            });
+
+            atkSpeciesSelect.value = state.attacker.species;
+            defSpeciesSelect.value = state.defender.species;
+
+            // Populate Natures, Items, Abilities, Tera Types
+            ['attacker', 'defender'].forEach(side => {
+                const natureSel = document.getElementById(`${side}-nature`);
+                Object.keys(NATURES).forEach(n => natureSel.add(new Option(n, n)));
+
+                const itemSel = document.getElementById(`${side}-item`);
+                ITEMS.forEach(i => itemSel.add(new Option(i, i)));
+
+                const abSel = document.getElementById(`${side}-ability`);
+                ABILITIES.forEach(a => abSel.add(new Option(a, a)));
+
+                const teraSel = document.getElementById(`${side}-tera`);
+                TYPES.forEach(t => teraSel.add(new Option(t, t)));
+            });
+        }
+
+        function renderPokemonPanel(side) {
+            const poke = state[side];
+            document.getElementById(`${side}-species`).value = poke.species;
+            document.getElementById(`${side}-level`).value = poke.level;
+            document.getElementById(`${side}-nature`).value = poke.nature;
+            document.getElementById(`${side}-item`).value = poke.item;
+            document.getElementById(`${side}-ability`).value = poke.ability;
+            document.getElementById(`${side}-tera`).value = poke.teraType;
+            document.getElementById(`${side}-is-terastallized`).checked = poke.isTerastallized;
+
+            renderStatsTable(side);
+
+            if (side === 'attacker') {
+                renderAttackerMoves();
+            }
+        }
+
+        function renderStatsTable(side) {
+            const poke = state[side];
+            const container = document.getElementById(`${side}-stats-rows`);
+            container.innerHTML = '';
+
+            const computedStats = calculateAllStats(poke);
+
+            if (side === 'defender' && (poke.currentHp === 0 || poke.currentHp > computedStats.hp)) {
+                poke.currentHp = computedStats.hp;
+            }
+
+            if (side === 'defender') {
+                document.getElementById('defender-current-hp').value = poke.currentHp;
+                document.getElementById('defender-max-hp-display').innerText = computedStats.hp;
+            }
+
+            STAT_NAMES.forEach(stat => {
+                const row = document.createElement('div');
+                row.className = "grid grid-cols-6 gap-1 items-center text-xs py-0.5";
+
+                const baseStat = POKEMON_DB[poke.species].baseStats[stat];
+
+                row.innerHTML = `
+                    <span class="font-bold text-gray-400 uppercase">${STAT_LABELS[stat]}</span>
+                    <span class="text-gray-400 text-center">${baseStat}</span>
+                    <input type="number" min="0" max="252" value="${poke.evs[stat]}" onchange="updateEV('${side}', '${stat}', this.value)" class="bg-gray-800 border border-gray-700 rounded text-center text-white focus:outline-none focus:border-blue-500 py-0.5">
+                    <input type="number" min="0" max="31" value="${poke.ivs[stat]}" onchange="updateIV('${side}', '${stat}', this.value)" class="bg-gray-800 border border-gray-700 rounded text-center text-white focus:outline-none focus:border-blue-500 py-0.5">
+                    ${stat === 'hp' ? '<span></span>' : `
+                        <select onchange="updateBoost('${side}', '${stat}', this.value)" class="bg-gray-800 border border-gray-700 rounded text-white text-xs focus:outline-none text-center py-0.5">
+                            ${[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6].map(b => `<option value="${b}" ${poke.boosts[stat] === b ? 'selected' : ''}>${b > 0 ? '+' + b : b}</option>`).join('')}
+                        </select>
+                    `}
+                    <span class="font-bold text-white text-center" id="${side}-stat-${stat}">${computedStats[stat]}</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderAttackerMoves() {
+            const container = document.getElementById('attacker-moves-container');
+            container.innerHTML = '';
+
+            state.attacker.moves.forEach((moveName, index) => {
+                const moveData = MOVES_DB[moveName] || { bp: 80, type: "Normal", category: "Physical" };
+                const isSelected = state.selectedMoveIndex === index;
+
+                const moveCard = document.createElement('div');
+                moveCard.className = `p-2 rounded border cursor-pointer transition flex items-center justify-between ${isSelected ? 'bg-blue-900/40 border-blue-500' : 'bg-gray-900 border-gray-800 hover:border-gray-700'}`;
+                moveCard.onclick = () => {
+                    state.selectedMoveIndex = index;
+                    renderAttackerMoves();
+                    calculateDamage();
+                };
+
+                const moveSelectOptions = Object.keys(MOVES_DB).sort().map(m => `<option value="${m}" ${m === moveName ? 'selected' : ''}>${m}</option>`).join('');
+
+                moveCard.innerHTML = `
+                    <div class="flex items-center space-x-2 flex-grow">
+                        <input type="radio" name="selected-move" ${isSelected ? 'checked' : ''} class="text-blue-600 focus:ring-0">
+                        <select onchange="changeMove(${index}, this.value)" onclick="event.stopPropagation()" class="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1 focus:outline-none">
+                            ${moveSelectOptions}
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white ${getTypeColor(moveData.type)}">${moveData.type}</span>
+                        <span class="text-gray-400">BP: <strong class="text-white">${moveData.bp}</strong></span>
+                    </div>
+                `;
+                container.appendChild(moveCard);
+            });
+        }
+
+        /* ==========================================================================
+           STAT CALCULATIONS
+           ========================================================================== */
+
+        function calculateAllStats(poke) {
+            const baseStats = POKEMON_DB[poke.species].baseStats;
+            const stats = {};
+
+            // HP Calculation
+            stats.hp = Math.floor(((2 * baseStats.hp + poke.ivs.hp + Math.floor(poke.evs.hp / 4)) * poke.level) / 100) + poke.level + 10;
+
+            // Other Stats Calculation
+            STAT_NAMES.filter(s => s !== 'hp').forEach(stat => {
+                let val = Math.floor(((2 * baseStats[stat] + poke.ivs[stat] + Math.floor(poke.evs[stat] / 4)) * poke.level) / 100) + 5;
+                
+                // Nature Multiplier
+                const natMod = NATURES[poke.nature];
+                if (natMod.plus === stat) val = Math.floor(val * 1.1);
+                if (natMod.minus === stat) val = Math.floor(val * 0.9);
+
+                stats[stat] = val;
+            });
+
+            return stats;
+        }
+
+        function getBoostedStat(statVal, boost) {
+            if (boost >= 0) return Math.floor(statVal * (2 + boost) / 2);
+            return Math.floor(statVal * 2 / (2 + Math.abs(boost)));
+        }
+
+        /* ==========================================================================
+           DAMAGE ENGINE (Gen 9 Rules)
+           ========================================================================== */
+
+        function calculateDamage() {
+            updateStateFromUI();
+
+            const atk = state.attacker;
+            const def = state.defender;
+            const moveName = atk.moves[state.selectedMoveIndex];
+            const move = MOVES_DB[moveName] || { bp: 80, type: "Normal", category: "Physical" };
+
+            document.getElementById('selected-move-name').innerText = `${moveName} (${move.type}, ${move.category})`;
+
+            const atkStats = calculateAllStats(atk);
+            const defStats = calculateAllStats(def);
+
+            // Determine Attack & Defense Values
+            let attackStatName = move.category === 'Special' ? 'spa' : 'atk';
+            let defenseStatName = move.category === 'Special' ? 'spd' : 'def';
+
+            if (move.useDef) attackStatName = 'def'; // e.g. Body Press
+
+            let A = getBoostedStat(atkStats[attackStatName], atk.boosts[attackStatName]);
+            let D = getBoostedStat(defStats[defenseStatName], def.boosts[defenseStatName]);
+
+            // Item Modifiers
+            if (atk.item === "Choice Band" && move.category === "Physical") A = Math.floor(A * 1.5);
+            if (atk.item === "Choice Specs" && move.category === "Special") A = Math.floor(A * 1.5);
+            if (def.item === "Assault Vest" && move.category === "Special") D = Math.floor(D * 1.5);
+
+            // Base Power
+            let bp = move.bp;
+
+            // STAB
+            let stab = 1.0;
+            const atkTypes = POKEMON_DB[atk.species].types;
+            const activeAtkType = atk.isTerastallized ? atk.teraType : null;
+
+            if (activeAtkType) {
+                if (activeAtkType === move.type) {
+                    stab = atkTypes.includes(move.type) ? 2.0 : 1.5;
+                } else if (atkTypes.includes(move.type)) {
+                    stab = 1.5;
+                }
+            } else if (atkTypes.includes(move.type)) {
+                stab = 1.5;
+            }
+
+            // Type Effectiveness
+            const defTypes = def.isTerastallized ? [def.teraType] : POKEMON_DB[def.species].types;
+            let typeEff = 1.0;
+            defTypes.forEach(t => {
+                if (TYPE_CHART[move.type] && TYPE_CHART[move.type][t] !== undefined) {
+                    typeEff *= TYPE_CHART[move.type][t];
+                }
+            });
+
+            // Burn Modifier
+            let statusMod = 1.0;
+            if (atk.status === "Burned" && move.category === "Physical") {
+                statusMod = 0.5;
+            }
+
+            // Weather Multipliers
+            let weatherMod = 1.0;
+            const weather = document.getElementById('weather').value;
+            if ((weather === "Sun" && move.type === "Fire") || (weather === "Rain" && move.type === "Water")) weatherMod = 1.5;
+            if ((weather === "Sun" && move.type === "Water") || (weather === "Rain" && move.type === "Fire")) weatherMod = 0.5;
+
+            // Screens
+            let screenMod = 1.0;
+            const isReflect = document.getElementById('field-reflect').checked;
+            const isLightScreen = document.getElementById('field-lightscreen').checked;
+            const isAuroraVeil = document.getElementById('field-auroraveil').checked;
+
+            if (move.category === "Physical" && (isReflect || isAuroraVeil)) screenMod = 0.5;
+            if (move.category === "Special" && (isLightScreen || isAuroraVeil)) screenMod = 0.5;
+
+            // Base Damage Formula
+            const level = atk.level;
+            const baseDamage = Math.floor(Math.floor((Math.floor((2 * level) / 5 + 2) * bp * A) / D) / 50 + 2);
+
+            // Generate 16 Random Rolls (0.85 to 1.00)
+            const rolls = [];
+            for (let i = 85; i <= 100; i++) {
+                let damage = Math.floor((baseDamage * i) / 100);
+                damage = Math.floor(damage * stab);
+                damage = Math.floor(damage * typeEff);
+                damage = Math.floor(damage * statusMod);
+                damage = Math.floor(damage * weatherMod);
+                damage = Math.floor(damage * screenMod);
+                if (atk.item === "Life Orb") damage = Math.floor(damage * 1.3);
+                if (damage < 1 && typeEff > 0) damage = 1;
+                if (typeEff === 0) damage = 0;
+                rolls.push(damage);
+            }
+
+            const minDamage = rolls[0];
+            const maxDamage = rolls[rolls.length - 1];
+            const defMaxHP = defStats.hp;
+
+            const minPercent = ((minDamage / defMaxHP) * 100).toFixed(1);
+            const maxPercent = ((maxDamage / defMaxHP) * 100).toFixed(1);
+
+            // Display Results
+            document.getElementById('damage-range-text').innerText = `${minDamage} - ${maxDamage}`;
+            document.getElementById('damage-percent-text').innerText = `${minPercent}% - ${maxPercent}%`;
+
+            // Calculate KO Probabilities
+            const currentDefHp = parseInt(document.getElementById('defender-current-hp').value) || defMaxHP;
+            let koText = "";
+
+            if (minDamage >= currentDefHp) {
+                koText = "Guaranteed 1KO";
+            } else if (maxDamage >= currentDefHp) {
+                const OHKORolls = rolls.filter(r => r >= currentDefHp).length;
+                const chance = ((OHKORolls / 16) * 100).toFixed(1);
+                koText = `${chance}% chance to 1KO`;
+            } else if (minDamage * 2 >= currentDefHp) {
+                koText = "Guaranteed 2KO";
+            } else if (maxDamage * 2 >= currentDefHp) {
+                koText = "Possible 2KO";
+            } else if (minDamage * 3 >= currentDefHp) {
+                koText = "Guaranteed 3KO";
+            } else {
+                koText = "4+ Hits to KO";
+            }
+
+            document.getElementById('ko-chance-text').innerText = koText;
+            document.getElementById('all-rolls-text').innerText = rolls.join(', ');
+        }
+
+        /* ==========================================================================
+           SHOWDOWN / POKEPASTE PARSER
+           ========================================================================== */
+
+        function parsePokePaste(side) {
+            const pasteText = document.getElementById(`${side}-paste`).value.trim();
+            if (!pasteText) return;
+
+            const lines = pasteText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length === 0) return;
+
+            const newPoke = createDefaultPokemonState("Flutter Mane");
+            newPoke.moves = [];
+
+            // Line 1: Species @ Item / Gender / Name
+            const line1 = lines[0];
+            let nameItemSplit = line1.split('@');
+            let speciesName = nameItemSplit[0].replace(/\(M\)|\(F\)/g, '').trim();
+
+            if (speciesName.includes('(') && speciesName.includes(')')) {
+                const match = speciesName.match(/\(([^)]+)\)/);
+                if (match) speciesName = match[1];
+            }
+
+            if (POKEMON_DB[speciesName]) {
+                newPoke.species = speciesName;
+            }
+
+            if (nameItemSplit[1]) {
+                newPoke.item = nameItemSplit[1].trim();
+            }
+
+            // Parse lines
+            lines.forEach(line => {
+                if (line.startsWith('Ability:')) {
+                    newPoke.ability = line.replace('Ability:', '').trim();
+                } else if (line.startsWith('Tera Type:')) {
+                    newPoke.teraType = line.replace('Tera Type:', '').trim();
+                } else if (line.startsWith('Level:')) {
+                    newPoke.level = parseInt(line.replace('Level:', '').trim()) || 100;
+                } else if (line.startsWith('EVs:')) {
+                    const evParts = line.replace('EVs:', '').split('/');
+                    evParts.forEach(part => {
+                        const [val, stat] = part.trim().split(' ');
+                        const s = stat.toLowerCase();
+                        if (STAT_NAMES.includes(s)) newPoke.evs[s] = parseInt(val) || 0;
+                        if (s === 'spa') newPoke.evs.spa = parseInt(val) || 0;
+                        if (s === 'spd') newPoke.evs.spd = parseInt(val) || 0;
+                        if (s === 'spe') newPoke.evs.spe = parseInt(val) || 0;
+                    });
+                } else if (line.includes('Nature')) {
+                    const nat = line.split(' ')[0].trim();
+                    if (NATURES[nat]) newPoke.nature = nat;
+                } else if (line.startsWith('-')) {
+                    const moveName = line.replace('-', '').trim();
+                    if (newPoke.moves.length < 4) newPoke.moves.push(moveName);
+                }
+            });
+
+            // Ensure 4 moves
+            while (newPoke.moves.length < 4) {
+                newPoke.moves.push("Tackle");
+            }
+
+            state[side] = newPoke;
+            renderPokemonPanel(side);
+            calculateDamage();
+        }
+
+        /* ==========================================================================
+           INTERACTION & EVENT HANDLERS
+           ========================================================================== */
+
+        function updateStateFromUI() {
+            ['attacker', 'defender'].forEach(side => {
+                state[side].species = document.getElementById(`${side}-species`).value;
+                state[side].level = parseInt(document.getElementById(`${side}-level`).value) || 100;
+                state[side].nature = document.getElementById(`${side}-nature`).value;
+                state[side].item = document.getElementById(`${side}-item`).value;
+                state[side].ability = document.getElementById(`${side}-ability`).value;
+                state[side].teraType = document.getElementById(`${side}-tera`).value;
+                state[side].isTerastallized = document.getElementById(`${side}-is-terastallized`).checked;
+            });
+        }
+
+        function loadPreset(side) {
+            const species = document.getElementById(`${side}-species`).value;
+            state[side] = createDefaultPokemonState(species);
+            renderPokemonPanel(side);
+            calculateDamage();
+        }
+
+        function updateEV(side, stat, value) {
+            state[side].evs[stat] = parseInt(value) || 0;
+            renderStatsTable(side);
+            calculateDamage();
+        }
+
+        function updateIV(side, stat, value) {
+            state[side].ivs[stat] = parseInt(value) || 0;
+            renderStatsTable(side);
+            calculateDamage();
+        }
+
+        function updateBoost(side, stat, value) {
+            state[side].boosts[stat] = parseInt(value) || 0;
+            calculateDamage();
+        }
+
+        function changeMove(index, newMove) {
+            state.attacker.moves[index] = newMove;
+            renderAttackerMoves();
+            calculateDamage();
+        }
+
+        function clearAll() {
+            state.attacker = createDefaultPokemonState("Flutter Mane");
+            state.defender = createDefaultPokemonState("Great Tusk");
+            state.selectedMoveIndex = 0;
+            document.getElementById('attacker-paste').value = '';
+            document.getElementById('defender-paste').value = '';
+            renderPokemonPanel('attacker');
+            renderPokemonPanel('defender');
+            calculateDamage();
+        }
+
+        function toggleGithubModal() {
+            const modal = document.getElementById('github-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function copyResultText() {
+            const atkName = state.attacker.species;
+            const defName = state.defender.species;
+            const moveName = state.attacker.moves[state.selectedMoveIndex];
+            const dmgText = document.getElementById('damage-percent-text').innerText;
+            const koText = document.getElementById('ko-chance-text').innerText;
+
+            const summary = `${atkName} ${moveName} vs. ${defName}: ${dmgText} -- ${koText}`;
+
+            navigator.clipboard.writeText(summary).then(() => {
+                alert("Summary copied to clipboard:\n" + summary);
+            });
+        }
+
+        function getTypeColor(type) {
+            const colors = {
+                Normal: 'bg-gray-500', Fire: 'bg-red-600', Water: 'bg-blue-600', Electric: 'bg-yellow-500',
+                Grass: 'bg-green-600', Ice: 'bg-cyan-500', Fighting: 'bg-orange-700', Poison: 'bg-purple-600',
+                Ground: 'bg-yellow-700', Flying: 'bg-indigo-400', Psychic: 'bg-pink-600', Bug: 'bg-lime-600',
+                Rock: 'bg-amber-700', Ghost: 'bg-purple-800', Dragon: 'bg-indigo-700', Steel: 'bg-slate-500',
+                Dark: 'bg-neutral-800', Fairy: 'bg-pink-400'
+            };
+            return colors[type] || 'bg-gray-600';
+        }
+    </script>
+</body>
+</html>
