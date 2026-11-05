@@ -42,6 +42,7 @@
   .desc { color:var(--muted); font-size:.78rem; }
   .err { color:var(--accent); font-size:.85rem; }
   .scroll { overflow-x:auto; }
+  .sprite { display:block; margin:0 auto 8px; height:96px; width:auto; image-rendering:pixelated; }
 </style>
 </head>
 <body>
@@ -115,6 +116,39 @@ function el(tag, cls, text) {
   return e;
 }
 
+// ---------- Sprites ----------
+function toID(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
+function spriteId(name) {
+  try {
+    const gen = calc.Generations.get(parseInt($('gen').value, 10));
+    const sp = gen.species.get(toID(name));
+    if (sp && sp.baseSpecies && sp.baseSpecies !== sp.name) {
+      // formes use "base-forme", e.g. urshifu-rapidstrike
+      return toID(sp.baseSpecies) + '-' + toID(sp.name.slice(sp.baseSpecies.length));
+    }
+  } catch (e) {}
+  return toID(name);
+}
+
+function setSprite(img, name) {
+  if (!name) { img.style.visibility = 'hidden'; return; }
+  const id = spriteId(name);
+  if (img.dataset.id === id) return;          // already showing this one
+  img.dataset.id = id;
+  img.style.visibility = 'visible';
+  delete img.dataset.fallback;
+  img.onerror = () => {
+    if (!img.dataset.fallback) {              // try the static sprite next
+      img.dataset.fallback = '1';
+      img.src = `https://play.pokemonshowdown.com/sprites/dex/${id}.png`;
+    } else {
+      img.style.visibility = 'hidden';        // unknown name, hide it
+    }
+  };
+  img.src = `https://play.pokemonshowdown.com/sprites/ani/${id}.gif`;
+}
+
 // ---------- Showdown paste parser / exporter ----------
 function parseStats(str) {
   const out = {};
@@ -174,6 +208,7 @@ function makeSide(root, title, sample) {
   const ivRow = STATS.map(k => `<td><input type="number" min="0" max="31" value="31" data-iv="${k}"></td>`).join('');
   root.innerHTML = `
     <h2>${title}</h2>
+    <img class="sprite" data-sprite alt="">
     <div class="frm" data-team-wrap style="display:none"><label>Imported team<select data-f="team"></select></label></div>
     <div class="frm">
       <label>Pokemon<input list="dl-species" data-f="species"></label>
@@ -184,6 +219,10 @@ function makeSide(root, title, sample) {
       <label>Tera type<select data-f="tera"><option value="">None</option>${TYPES.map(t => `<option>${t}</option>`).join('')}</select></label>
     </div>
     <label class="inline"><input type="checkbox" data-f="isTera"> Terastallized</label>
+    <div class="frm" style="margin-top:8px">
+      <label>Type 1 override<select data-f="type1"><option value="">Default</option>${TYPES.map(t => `<option>${t}</option>`).join('')}</select></label>
+      <label>Type 2 override<select data-f="type2"><option value="">Default</option><option value="none">None</option>${TYPES.map(t => `<option>${t}</option>`).join('')}</select></label>
+    </div>
     <table class="stats"><tr><th></th>${statHead}</tr>
       <tr><td>EVs</td>${evRow}</tr><tr><td>IVs</td>${ivRow}</tr></table>
     <div class="moves">${[0,1,2,3].map(i => `<input list="dl-moves" placeholder="Move ${i + 1}" data-mv="${i}">`).join('')}</div>
@@ -195,6 +234,7 @@ function makeSide(root, title, sample) {
   const q = s => root.querySelector(s);
   const f = n => q(`[data-f="${n}"]`);
   let team = [];
+  const img = q('[data-sprite]');
 
   function load(s) {
     f('species').value = s.species || '';
@@ -203,6 +243,7 @@ function makeSide(root, title, sample) {
     f('nature').value = s.nature ? s.nature[0].toUpperCase() + s.nature.slice(1).toLowerCase() : 'Hardy';
     f('level').value = s.level || 100;
     f('tera').value = s.tera || '';
+    f('type1').value = ''; f('type2').value = '';   // imports reset type overrides
     STATS.forEach(k => {
       q(`[data-ev="${k}"]`).value = (s.evs && s.evs[k]) || 0;
       q(`[data-iv="${k}"]`).value = s.ivs && s.ivs[k] !== undefined ? s.ivs[k] : 31;
@@ -220,9 +261,12 @@ function makeSide(root, title, sample) {
       level: num(f('level'), 100),
       tera: f('tera').value,
       isTera: f('isTera').checked,
+      type1: f('type1').value,
+      type2: f('type2').value,
       evs: {}, ivs: {},
       moves: [0, 1, 2, 3].map(i => q(`[data-mv="${i}"]`).value.trim()).filter(Boolean),
     };
+    setSprite(img, s.species);
     STATS.forEach(k => {
       s.evs[k] = num(q(`[data-ev="${k}"]`), 0);
       s.ivs[k] = num(q(`[data-iv="${k}"]`), 31);
@@ -253,6 +297,15 @@ function makeSide(root, title, sample) {
 function buildPokemon(gen, s) {
   const o = { level: s.level, item: s.item, ability: s.ability, nature: s.nature, evs: s.evs, ivs: s.ivs };
   if (s.isTera && s.tera) o.teraType = s.tera;
+  if (s.type1 || s.type2) {
+    // "Default" keeps the species' own type in that slot (Soak: Water + None; Forest's Curse: add Grass as Type 2)
+    const base = (gen.species.get(toID(s.species)) || {}).types || [];
+    const t1 = s.type1 || base[0];
+    let t2 = s.type2 === 'none' ? null : (s.type2 || base[1] || null);
+    if (t2 === t1) t2 = null;
+    // null (not undefined) so a one-type override replaces the species' second type
+    o.overrides = { types: [t1, t2] };
+  }
   return new calc.Pokemon(gen, s.species, o);
 }
 
